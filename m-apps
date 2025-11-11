@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!/bin/python3
 from sys import argv
 import argparse as ap
 import csv
@@ -58,27 +58,31 @@ class App:
             return False
         return os.path.isfile(os.path.join(self.app_path,self.app_name))
 
+    @classmethod
+    def update_all(apps_csv_path):
+        with open(apps_csv_path,newline="") as csvfile:
+            spamreader = csv.reader(csvfile,delimiter=",")
+            for type_, name, path in spamreader:
+                App(type_, name, path).update()
+
     def update(self,apps_csv_path):
         if not os.path.isfile(apps_csv_path):
             print(f"Error: Update: '{apps_csv_path=}' does not exist")
             return False
 
-        if self.app_name == 'all':
-            with open(apps_csv_path,newline="") as csvfile:
-                spamreader = csv.reader(csvfile,delimiter=",")
-                for type_, name, path in spamreader:
-                    App(type_, name, path).update()
-
         elif self.check():
             path_from = os.path.join(self.app_path,self.app_name)
             path_to = os.path.join(os.path.dirname(apps_csv_path),self.app_type,self.app_name)
-            os.symlink(path_from, path_to)
+            try:
+                os.symlink(path_from, path_to)
+            except FileExistsError:
+                print(f"\033[33mLink '{path_to}' already exists.\033[0m");
 
 
 commands = {"help","register","delete","check","list","update"}
 usage_string: str = f"Usage: $ {argv[0]} (help|register|delete|update|check|list) service-name"
 
-parser = ap.ArgumentParser("appmng",usage=usage_string);
+parser = ap.ArgumentParser("m-apps",usage=usage_string);
 parser.add_argument("-p", "--apps-csv-path", default="/home/ganon/.local/share/apps/apps.csv", help="Command to execute")
 parser.add_argument("command", type=str, nargs=1, choices=commands, default=["help"], help="Command to execute")
 parser.add_argument("name", type=str, nargs='*', default=None, help="Service name to execute the command onto.")
@@ -117,9 +121,9 @@ elif command == 'list':
 elif name is not None:
     name_present = name in [app.app_name for app in apps]
     if command == 'update' and name_present or name == 'all':
-        print(f"Updating {name}.")
+        print(f"Updating.")
         if name == 'all':
-            App("all",None,None).update()
+            App.update_all(apps_csv_path)
         else:
             for app in apps:
                 app.update(apps_csv_path)
