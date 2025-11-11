@@ -1,0 +1,141 @@
+#!/bin/env python3
+from sys import argv
+import argparse as ap
+import csv
+import os
+
+
+def die(msg):
+    print(msg)
+    exit(1)
+
+types = {"term","graphical"}
+paths_to_check = os.getenv("PATH")
+
+class App:
+    def __init__(self, app_type:str, app_name:str, app_path:str):
+        """ @param app_type type of the app, as illustrated above
+                it can be 'term' or 'graphical';
+            @param app_name app_name
+        """
+        if not isinstance(app_type,str):
+            raise TypeError("Wrong type for app_type in\
+                            the constructor of class App");
+        if not isinstance(app_name,str):
+            raise TypeError("Wrong type for app_name in\
+                            the constructor of class App");
+        if not isinstance(app_path,str):
+            raise TypeError("Wrong type for app_path in\
+                            the constructor of class App");
+
+        self.app_type = app_type
+        self.app_name = app_name
+        self.app_path = app_path
+
+    def register(self, apps_csv_path):
+        """@param apps_csv_path the `apps.csv` file to add this app to.
+        """
+        with open(apps_csv_path,"w",newline="") as csvfile:
+            spamwriter = csv.writer(csvfile, delimiter=',')
+            spamwriter.writerow([self.app_type,self.app_name,self.app_path])
+
+
+
+    def delete(self, apps_csv_path):
+        """@param apps_csv_path the `apps.csv` file to delete this app from.
+        """
+        with open(apps_csv_path,"r+",newline="") as csvfile:
+            csv_lines = csvfile.readlines()
+            for line in csv_lines:
+                if line.split(",")[0] == self.app_name:
+                    csv_lines.remove(line)
+                    csvfile.writelines(csv_lines)
+                    break                        
+        
+
+    def check(self):
+        if self.app_path is None or self.app_name is None:
+            return False
+        return os.path.isfile(os.path.join(self.app_path,self.app_name))
+
+    def update(self,apps_csv_path):
+        if not os.path.isfile(apps_csv_path):
+            print(f"Error: Update: '{apps_csv_path=}' does not exist")
+            return False
+
+        if self.app_name == 'all':
+            with open(apps_csv_path,newline="") as csvfile:
+                spamreader = csv.reader(csvfile,delimiter=",")
+                for type_, name, path in spamreader:
+                    App(type_, name, path).update()
+
+        elif self.check():
+            path_from = os.path.join(self.app_path,self.app_name)
+            path_to = os.path.join(os.path.dirname(apps_csv_path),self.app_type,self.app_name)
+            os.symlink(path_from, path_to)
+
+
+commands = {"help","register","delete","check","list","update"}
+usage_string: str = f"Usage: $ {argv[0]} (help|register|delete|update|check|list) service-name"
+
+parser = ap.ArgumentParser("appmng",usage=usage_string);
+parser.add_argument("-p", "--apps-csv-path", default="/home/ganon/.local/share/apps/apps.csv", help="Command to execute")
+parser.add_argument("command", type=str, nargs=1, choices=commands, default=["help"], help="Command to execute")
+parser.add_argument("name", type=str, nargs='*', default=None, help="Service name to execute the command onto.")
+# parser.add_argument("path", type=str, nargs='*', default=None, help="Path of the service name")
+args = parser.parse_args()
+
+command: str = args.command[0]
+
+name: str | None = None
+if args.name:
+    name = args.name[0]
+
+path: str | None = ""
+# if args.path:
+#     path = args.path[0]
+
+apps_csv_path = args.apps_csv_path
+
+apps = []
+
+with open(apps_csv_path,newline="") as csvfile:
+    spamreader = csv.reader(csvfile,delimiter=",")
+    for type_, name, path in spamreader:
+        apps.append(App(type_, name, path))
+
+
+
+if command == 'help' or not command:
+    die(usage_string)
+elif command == 'list':
+    print(f"{'type'.center(15)}|{'name'.center(15)}|    path")
+    for app in apps:
+        name = app.app_name
+        path = f"\033[32m{app.app_path.ljust(15)}\033[0m" if app.check() else f"\033[31m{app.app_path.ljust(15)}\033[0m"
+        print(f"{app.app_type.center(15)}|{name.center(15)}|    {path}")#|{service.start_exec=} | {service.stop_exec=}")
+elif name is not None:
+    name_present = name in [app.app_name for app in apps]
+    if command == 'update' and name_present or name == 'all':
+        print(f"Updating {name}.")
+        if name == 'all':
+            App("all",None,None).update()
+        else:
+            for app in apps:
+                app.update(apps_csv_path)
+    elif command == 'register' and not name_present:
+        print(f"Registering {name}.")
+        app.register(apps_csv_path)
+    elif name_present:
+        for app in apps:
+            if app.app_name == name:
+                if command == 'delete':
+                    print(f"Deleting {name} (only on paper)")
+                    app.delete()
+                elif command == 'check':
+                    print(f"Deleting {name} (only on paper)")
+                    app.check()
+                break
+    else:
+        print("ERR: app not found:",name)
+
