@@ -3,3 +3,4 @@ graphics,start-tor-browser,/home/ganon/.mullvad-browser/Downloads/tor-browser/Br
 term,dvtm,/home/ganon/.local/bin
 graphics,st,/usr/local/bin
 graphics,tw-chat,/home/ganon/.local/bin
+term-nonint,pomodoro,/home/ganon/.local/bin

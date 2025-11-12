@@ -22,11 +22,15 @@ def die(msg):
 
 
 def gen_text(csv_file):
-    if '.' in csv_file:
-        file_no_ext = ' '.join(csv_file.split(".")[:-1])
-    else:
-        file_no_ext = csv_file
-    out = file_no_ext + '.ttext'
+    if not os.path.isfile(csv_file):
+        raise FileExistsError(f"File does not exist: {csv_file}")
+
+    dirname, basename = os.path.split(csv_file)
+    if '.' in basename:
+        basename = '.'.join(basename.split(".")[:-1])
+
+    out = os.path.join(dirname,f'{basename}.ttext')
+
     print(f"Writing {out} from {csv_file}")
     with open(out,"w") as text:
         with open(csv_file,newline="") as csvfile:
@@ -65,7 +69,12 @@ class App:
 
     def launch(self,*args):
         command = launch_type_to_command.get(self.app_type,["sh","-c"])
-        command.append(f"{os.path.join(self.app_path,self.app_name)} {' '.join(args)}")
+        #print(command)
+        command.append(f"{os.path.join(self.app_path,self.app_name)}{(' '+' '.join(args))if args else ''}")
+        print("$ ",end="")
+        for x in command:
+            print(f"'{x}' ",end="")
+        print('\b')
         subprocess.Popen(command)
 
     def delete(self, apps_csv_path):
@@ -192,7 +201,7 @@ elif name is not None:
                     app.launch(*other_launch_args)
                 if command == 'delete':
                     print(f"Deleting {name}.(only on paper)")
-                    app.delete()
+                    app.delete(apps_csv_path)
                 elif command == 'check':
                     print(f"Checking {name}: {'Valid' if app.check() else 'Invalid'}")
                 break
