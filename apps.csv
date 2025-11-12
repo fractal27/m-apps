@@ -1,3 +1,5 @@
-term,tw-chat,/home/ganon/.local/bin
-term,termshark,/usr/bin
-term,calendar,/home/ganon/.local/bin
+term-nonint,ws,/home/ganon/.local/bin
+graphics,start-tor-browser,/home/ganon/.mullvad-browser/Downloads/tor-browser/Browser/
+term,dvtm,/home/ganon/.local/bin
+graphics,st,/usr/local/bin
+graphics,tw-chat,/home/ganon/.local/bin
