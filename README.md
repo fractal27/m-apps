@@ -16,4 +16,16 @@ $ #sudo make global-install
 $ make local-install
 Successfully installed `m-apps` locally into `~/.local/bin`
 ```
-- modify the apps, you first should remove all apps in the configuration.
+- modify the apps, you first should register an app in the configuration.
+
+```sh
+$ m-apps register tmux term
+```
+
+
+## Todo
+ 
+- Making the modification of the app launchers easier(currently you have to modify the source file)
+
+
+
