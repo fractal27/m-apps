@@ -4,3 +4,7 @@ term,dvtm,/home/ganon/.local/bin
 graphics,st,/usr/local/bin
 graphics,tw-chat,/home/ganon/.local/bin
 term-nonint,pomodoro,/home/ganon/.local/bin
+graphics,obs,/usr/bin
+graphics,keepassxc,/usr/bin
+graphics,qutebrowser,/usr/bin
+graphics,mullvad-browser,/usr/bin

@@ -9,9 +9,11 @@ import os
 types = {"term","graphical"}
 launch_type_to_command = {
     "term":["st"],
-    "term-nonint":["bash","-c"],
+    "term-nonint":["bash","-c"], 
     "graphical":["sh","-c"] # just launch the program
+    #you can add launch types here
 }
+
 
 paths_to_check = os.getenv("PATH")
 
@@ -172,7 +174,7 @@ elif command == 'list':
         print(f"{app.app_type.center(15)}|{name.center(15)}|    {path}")#|{service.start_exec=} | {service.stop_exec=}")
 elif name is not None:
     name_present = name in [app.app_name for app in apps]
-    if command == 'update' and name_present or name == 'all':
+    if command == 'update' and (name_present or name == 'all'):
         print(f"Updating.")
         if name == 'all':
             App.update_all(apps_csv_path)
@@ -184,15 +186,23 @@ elif name is not None:
             print("ERR: Type not provided.")
             exit(1)
         print(f"Registering {name}.")
+        registered = False
         if opt_path:
-            App(app_type,name,opt_path).register(apps_csv_path)
-            print("Registration successful")
+            if os.path.isfile(opt_path):
+                App(app_type,name,opt_path).register(apps_csv_path)
+            else:
+                print("Invalid path")
         else:
             for path in paths_to_check.split(":"):
+                print("Checking path", path);
                 if os.path.isfile(os.path.join(path,name)):
                     App(app_type,name,path).register(apps_csv_path)
                     print("Registration successful")
+                    registered = True
                     break
+            if not registered:
+                print("Invalid path")
+
     elif name_present:
         for app in apps:
             if app.app_name == name:
