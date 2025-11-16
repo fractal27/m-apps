@@ -36,9 +36,10 @@ def gen_text(csv_file):
     print(f"Writing {out} from {csv_file}")
     with open(out,"w") as text:
         with open(csv_file,newline="") as csvfile:
-            spamreader = csv.reader(csvfile,delimiter=",")
-            for type_, name, path in spamreader:
-                text.write(os.path.join(type_,name)+"\n")
+            if csvfile.read() != "":
+                spamreader = csv.reader(csvfile,delimiter=",")
+                for type_, name, path in spamreader:
+                    text.write(os.path.join(type_,name)+"\n")
 
 class App:
     def __init__(self, app_type:str, app_name:str, app_path:str):
@@ -63,6 +64,9 @@ class App:
     def register(self, apps_csv_path):
         """@param apps_csv_path the `apps.csv` file to add this app to.
         """
+        if not os.path.isfile(apps_csv_path):
+            print(f"Error: Register: '{apps_csv_path=}' does not exist")
+            return False
         with open(apps_csv_path,"a",newline="") as csvfile:
             spamwriter = csv.writer(csvfile, delimiter=',')
             spamwriter.writerow([self.app_type,self.app_name,self.app_path])
@@ -82,6 +86,9 @@ class App:
     def delete(self, apps_csv_path):
         """@param apps_csv_path the `apps.csv` file to delete this app from.
         """
+        if not os.path.isfile(apps_csv_path):
+            print(f"Error: Delete: '{apps_csv_path=}' does not exist")
+            return False
         with open(apps_csv_path,"r+",newline="") as csvfile:
             csv_lines = csvfile.readlines()
             for line in csv_lines:
@@ -98,12 +105,26 @@ class App:
         return os.path.isfile(os.path.join(self.app_path,self.app_name))
 
     @classmethod
-    def update_all(cls,apps_csv_path):
+    def update_all(cls ,apps_csv_path):
+        if not os.path.isfile(apps_csv_path):
+            print(f"Error: Update: '{apps_csv_path=}' does not exist")
+            return False
         with open(apps_csv_path,newline="") as csvfile:
-            spamreader = csv.reader(csvfile,delimiter=",")
-            for type_, name, path in spamreader:
-                App(type_, name, path).update(apps_csv_path)
+            if csvfile.read() != "":
+                spamreader = csv.reader(csvfile,delimiter=",")
+                for type_, name, path in spamreader:
+                    App(type_, name, path).update(apps_csv_path)
         gen_text(apps_csv_path)
+
+    @classmethod
+    def delete_all(cls, apps_csv_path):
+        if not os.path.isfile(apps_csv_path):
+            print(f"Error: Delete-All: '{apps_csv_path=}' does not exist")
+            return False
+        with open(apps_csv_path,"w",newline="") as csvfile:
+            spamwriter = csv.writer(csvfile, delimiter=',')
+            spamwriter.writerow([])
+            gen_text(apps_csv_path)
 
     def update(self,apps_csv_path):
         if not os.path.isfile(apps_csv_path):
@@ -157,11 +178,15 @@ apps_csv_path = args.apps_csv_path if args.apps_csv_path else os.path.join(workd
 
 apps = []
 
-with open(apps_csv_path,newline="") as csvfile:
-    spamreader = csv.reader(csvfile,delimiter=",")
-    for type_, name_, path_ in spamreader:
-        apps.append(App(type_, name_, path_))
-
+try:
+    with open(apps_csv_path,newline="") as csvfile:
+        if csvfile.read() != "":
+            spamreader = csv.reader(csvfile,delimiter=",")
+            for type_, name_, path_ in spamreader:
+                apps.append(App(type_, name_, path_))
+except FileNotFoundError:
+    print("File was not found, trying to create it.")
+    open(apps_csv_path,"w").write("")
 
 
 if command == 'help' or not command:
@@ -174,13 +199,16 @@ elif command == 'list':
         print(f"{app.app_type.center(15)}|{name.center(15)}|    {path}")#|{service.start_exec=} | {service.stop_exec=}")
 elif name is not None:
     name_present = name in [app.app_name for app in apps]
-    if command == 'update' and (name_present or name == 'all'):
-        print(f"Updating.")
-        if name == 'all':
+    if name == 'all':
+        if command == 'delete':
+            print(f"Deleting all.")
+            if(input("Are you sure you want to delete all the registered apps(on paper)? \n(NOTE:This action is irreversible)[y/N] ")
+               .lower().startswith('y')):
+                App.delete_all(apps_csv_path)
+        elif command == 'update':
+            print(f"Updating.")
             App.update_all(apps_csv_path)
-        else:
-            for app in apps:
-                app.update(apps_csv_path)
+        exit(0)
     elif command == 'register' and not name_present:
         if not app_type:
             print("ERR: Type not provided.")
@@ -206,6 +234,8 @@ elif name is not None:
     elif name_present:
         for app in apps:
             if app.app_name == name:
+                if command == 'update':
+                    app.update(apps_csv_path)
                 if command == 'launch':
                     print(f"Launching {name}.")
                     app.launch(*other_launch_args)
