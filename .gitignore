@@ -1,7 +1,7 @@
 
 apps.ttext
-term/*
-term-nonint/*
-graphics/*
+term/[^.gitkeep]*
+term-nonint/[^.gitkeep]*
+graphics/[^.gitkeep]*
 
 
