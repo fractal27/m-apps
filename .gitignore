@@ -1,8 +1,11 @@
 
 apps.csv
 apps.ttext
-term/[^.gitkeep]*
-term-nonint/[^.gitkeep]*
-graphics/[^.gitkeep]*
+term/*
+term-nonint/*
+graphics/*
 
+!term/.gitkeep
+!term-nonint/.gitkeep
+!graphics/.gitkeep
 
