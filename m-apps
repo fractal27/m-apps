@@ -92,7 +92,7 @@ try:
         with open(apps_csv_path,"r",newline="") as csvfile:
             spamreader = csv.reader(csvfile,delimiter=",")
             for type_, name_, path_ in spamreader:
-                apps.append(App(type_, name_, path_))
+                apps.append(App(type_, name_, path_, apps_csv_path))
 except FileNotFoundError:
     print("File was not found, trying to create it.")
     open(apps_csv_path,"w").write("")
@@ -127,14 +127,14 @@ elif name is not None:
         if opt_path:
             if os.path.isfile(os.path.join(opt_path,name)):
                 print("trying to register path")
-                App(app_type,name,opt_path).register(apps_csv_path)
+                App(app_type,name,opt_path,apps_csv_path).register()
             else:
                 print(f"Invalid path: {opt_path}")
         else:
             for path in paths_to_check.split(":"):
                 print("Checking path", path)
                 if os.path.isfile(os.path.join(path,name)):
-                    App(app_type,name,path).register(apps_csv_path)
+                    App(app_type,name,path,apps_csv_path).register()
                     print("Registration successful")
                     registered = True
                     break

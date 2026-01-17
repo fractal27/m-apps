@@ -2,37 +2,39 @@ import os, csv
 
 
 class App:
-    def __init__(self, app_type:str, app_name:str, app_path:str):
+    def __init__(self, app_type:str, app_name:str, app_path:str, apps_csv_path:str):
         """ @param app_type type of the app, as illustrated above
                 it can be 'term' or 'graphical';
             @param app_name app_name
+            @param app_name app_name
+            @param apps_csv_path the `apps.csv` file to remove/update the apps from/to
         """
         if not isinstance(app_type,str):
-            raise TypeError("Wrong type for app_type in\
-                            the constructor of class App");
+            raise TypeError("Wrong type for app_type in the constructor of class App");
         if not isinstance(app_name,str):
-            raise TypeError("Wrong type for app_name in\
-                            the constructor of class App");
+            raise TypeError("Wrong type for app_name in the constructor of class App");
         if not isinstance(app_path,str):
-            raise TypeError("Wrong type for app_path in\
-                            the constructor of class App");
+            raise TypeError("Wrong type for app_path in the constructor of class App");
+        if not isinstance(apps_csv_path,str):
+            raise TypeError("Wrong type for apps_csv_path in the constructor of class App");
 
         self.app_type = app_type
         self.app_name = app_name
         self.app_path = app_path
+        self.apps_csv_path = apps_csv_path
         #print(f"New App with ({app_type=},{app_name=},{app_path=})")
 
-    def register(self, apps_csv_path):
+    def register(self):
         """@param apps_csv_path the `apps.csv` file to add this app to.
         """
-        if not os.path.isfile(apps_csv_path):
-            print(f"Error: Register: '{apps_csv_path=}' does not exist")
+        if not os.path.isfile(self.apps_csv_path):
+            print(f"Error: Register: '{self.apps_csv_path=}' does not exist")
             return False
-        with open(apps_csv_path,"a",newline="") as csvfile:
+        with open(self.apps_csv_path,"a",newline="") as csvfile:
             spamwriter = csv.writer(csvfile, delimiter=',')
             print("the app path is:",self.app_path)
             spamwriter.writerow([self.app_type,self.app_name,self.app_path])
-            gen_text(apps_csv_path)
+            gen_text(self.apps_csv_path)
 
 
     def launch(self,*args):
@@ -45,16 +47,14 @@ class App:
         print('\b')
         subprocess.Popen(command)
 
-    def delete(self, apps_csv_path):
-        """@param apps_csv_path the `apps.csv` file to delete this app from.
-        """
-        if not os.path.isfile(apps_csv_path):
-            print(f"Error: Delete: '{apps_csv_path=}' does not exist")
+    def delete(self):
+        if not os.path.isfile(self.apps_csv_path):
+            print(f"Error: Delete: '{self.apps_csv_path=}' does not exist")
             return False
-        with open(apps_csv_path,"r",newline="") as csvfile:
+        with open(self.apps_csv_path,"r",newline="") as csvfile:
             csv_lines = csvfile.readlines()
 
-        with open(apps_csv_path,"w",newline="") as csvfile:
+        with open(self.apps_csv_path,"w",newline="") as csvfile:
             spamwriter = csv.writer(csvfile,delimiter=',')
             found = False
             for line in csv_lines:
@@ -74,7 +74,7 @@ class App:
         return os.path.isfile(os.path.join(self.app_path,self.app_name))
 
     @classmethod
-    def update_all(cls ,apps_csv_path):
+    def update_all(cls, apps_csv_path):
         if not os.path.isfile(apps_csv_path):
             print(f"Error: Update: '{apps_csv_path=}' does not exist")
             return False
@@ -82,7 +82,7 @@ class App:
             if os.stat(apps_csv_path).st_size != 0:
                 spamreader = csv.reader(csvfile,delimiter=",")
                 for type_, name, path in spamreader:
-                    App(type_, name, path).update(apps_csv_path)
+                    App(type_, name, path, apps_csv_path).update()
         gen_text(apps_csv_path)
 
     @classmethod
@@ -95,22 +95,22 @@ class App:
             spamwriter.writerow([])
             gen_text(apps_csv_path)
 
-    def update(self,apps_csv_path):
-        if not os.path.isfile(apps_csv_path):
-            print(f"Error: Update: '{apps_csv_path=}' does not exist")
+    def update(self):
+        if not os.path.isfile(self.apps_csv_path):
+            print(f"Error: Update: '{self.apps_csv_path=}' does not exist")
             return False
 
         elif self.check():
             # print("Updating ...")
             path_from = os.path.join(self.app_path,self.app_name)
-            path_to = os.path.join(os.path.dirname(apps_csv_path),self.app_type,self.app_name)
+            path_to = os.path.join(os.path.dirname(self.apps_csv_path),self.app_type,self.app_name)
             updated = False
             try:
                 if os.path.isfile(path_to) and os.readlink(path_to) != path_from: # changed path
                     os.unlink(path_to)
                     updated = True
                 os.symlink(path_from, path_to)
-                gen_text(apps_csv_path)
+                gen_text(self.apps_csv_path)
                 print(f"\033[32mLink '{path_to}'","created\033[m" if not updated else "updated\033[m");
             except FileExistsError:
                 print(f"\033[33mLink '{path_to}' already exists.\033[0m");
