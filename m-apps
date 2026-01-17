@@ -148,7 +148,7 @@ elif name is not None:
                     app.update(apps_csv_path)
                 if command == 'launch':
                     print(f"Launching {name}.")
-                    app.launch(*other_launch_args)
+                    app.launch(launch_type_to_command, *other_launch_args)
                 if command == 'delete':
                     print(f"Deleting {name}.(only on paper)")
                     app.delete(apps_csv_path)

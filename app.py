@@ -1,4 +1,6 @@
-import os, csv
+import os
+import csv
+import subprocess
 
 
 class App:
@@ -37,7 +39,7 @@ class App:
             gen_text(self.apps_csv_path)
 
 
-    def launch(self,*args):
+    def launch(self, launch_type_to_command, *args):
         command = launch_type_to_command.get(self.app_type,["sh","-c"])
         #print(command)
         command.append(f"{os.path.join(self.app_path,self.app_name)}{(' '+' '.join(args))if args else ''}")
