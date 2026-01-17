@@ -4,6 +4,7 @@ apps.ttext
 term/*
 term-nonint/*
 graphics/*
+__pycache__/*
 
 !term/.gitkeep
 !term-nonint/.gitkeep

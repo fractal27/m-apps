@@ -22,11 +22,15 @@ default_launch_type_to_command = {
     #you can add launch-type-specific commands here
 }
 
+types = default_types
+launch_type_to_command = default_launch_type_to_command
+
+
 if os.path.exists(config_path := os.path.join(default_path,"config.jsonc")):
-    json_config = json.loads(config_path)
+    json_config = json.load(open(config_path,'r'))
     types = set()
 
-    launch_type_to_command = json_config.get("type-cmd", None)
+    launch_type_to_command = json_config.get("commands", None)
     if launch_type_to_command is None:
         launch_type_to_command = default_launch_type_to_command
     else:
