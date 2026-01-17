@@ -1,0 +1,5 @@
+{
+    "term":["st"],
+    "term-nonint":["bash","-c"], 
+    "graphical":["sh","-c"]
+}

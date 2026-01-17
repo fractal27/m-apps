@@ -4,151 +4,54 @@ import argparse as ap
 import subprocess
 import csv
 import os
+import platform
+import json
+from app import App
+if platform.system() == "win32":
+    default_path = os.path.join(os.getenv("USER"),"AppData","apps")
+    if not os.path.exists(default_path):
+        os.mkdir(default_path)
+else:
+    default_path = os.path.join(os.getenv("HOME"),".local","share","apps")
 
-
-types = {"term","graphical"}
-launch_type_to_command = {
+default_types = {"term","graphical","term-nonint"}
+default_launch_type_to_command = {
     "term":["st"],
     "term-nonint":["bash","-c"], 
     "graphical":["sh","-c"] # just launch the program
-    #you can add launch types here
+    #you can add launch-type-specific commands here
 }
 
+if os.path.exists(config_path := os.path.join(default_path,"config.jsonc")):
+    json_config = json.loads(config_path)
+    types = set()
+
+    launch_type_to_command = json_config.get("type-cmd", None)
+    if launch_type_to_command is None:
+        launch_type_to_command = default_launch_type_to_command
+    else:
+        assert(isinstance(launch_type_to_command, dict), "Types in config.py must be a dict")
+        for launchtype in launch_type_to_command:
+            assert(isinstance(launchtype, str),
+                   "config.json: Launch type must be a string when specifiying \"ltype\": [ \"command...\" ]")
+            assert(isinstance(launch_type_to_command[launchtype], list),
+                   "config.json: Launch type's value(command) must be a list when specifiying \"ltype\": [ \"command...\" ]")
+            types.add(launchtype)
+            for x in launch_type_to_command[launchtype]:
+                assert(isinstance(x, str),
+                   "config.json: Command list's arguments must all be strings.")
 
 paths_to_check = os.getenv("PATH")
 
-
-def die(msg):
-    print(msg)
-    exit(1)
-
-
-def gen_text(csv_file):
-    if not os.path.isfile(csv_file):
-        raise FileExistsError(f"File does not exist: {csv_file}")
-
-    dirname, basename = os.path.split(csv_file)
-    if '.' in basename:
-        basename = '.'.join(basename.split(".")[:-1])
-
-    out = os.path.join(dirname,f'{basename}.ttext')
-
-    print(f"Writing {out} from {csv_file}")
-    with open(out,"w") as text:
-        with open(csv_file,newline="") as csvfile:
-            if csvfile.read() != "":
-                spamreader = csv.reader(csvfile,delimiter=",")
-                for type_, name, path in spamreader:
-                    text.write(os.path.join(type_,name)+"\n")
-
-class App:
-    def __init__(self, app_type:str, app_name:str, app_path:str):
-        """ @param app_type type of the app, as illustrated above
-                it can be 'term' or 'graphical';
-            @param app_name app_name
-        """
-        if not isinstance(app_type,str):
-            raise TypeError("Wrong type for app_type in\
-                            the constructor of class App");
-        if not isinstance(app_name,str):
-            raise TypeError("Wrong type for app_name in\
-                            the constructor of class App");
-        if not isinstance(app_path,str):
-            raise TypeError("Wrong type for app_path in\
-                            the constructor of class App");
-
-        self.app_type = app_type
-        self.app_name = app_name
-        self.app_path = app_path
-
-    def register(self, apps_csv_path):
-        """@param apps_csv_path the `apps.csv` file to add this app to.
-        """
-        if not os.path.isfile(apps_csv_path):
-            print(f"Error: Register: '{apps_csv_path=}' does not exist")
-            return False
-        with open(apps_csv_path,"a",newline="") as csvfile:
-            spamwriter = csv.writer(csvfile, delimiter=',')
-            spamwriter.writerow([self.app_type,self.app_name,self.app_path])
-            gen_text(apps_csv_path)
-
-
-    def launch(self,*args):
-        command = launch_type_to_command.get(self.app_type,["sh","-c"])
-        #print(command)
-        command.append(f"{os.path.join(self.app_path,self.app_name)}{(' '+' '.join(args))if args else ''}")
-        print("$ ",end="")
-        for x in command:
-            print(f"'{x}' ",end="")
-        print('\b')
-        subprocess.Popen(command)
-
-    def delete(self, apps_csv_path):
-        """@param apps_csv_path the `apps.csv` file to delete this app from.
-        """
-        if not os.path.isfile(apps_csv_path):
-            print(f"Error: Delete: '{apps_csv_path=}' does not exist")
-            return False
-        with open(apps_csv_path,"r+",newline="") as csvfile:
-            csv_lines = csvfile.readlines()
-            for line in csv_lines:
-                if line.split(",")[0] == self.app_name:
-                    csv_lines.remove(line)
-                    csvfile.writelines(csv_lines)
-                    gen_text(apps_csv_path)
-                    break                        
-        
-
-    def check(self):
-        if self.app_path is None or self.app_name is None:
-            return False
-        return os.path.isfile(os.path.join(self.app_path,self.app_name))
-
-    @classmethod
-    def update_all(cls ,apps_csv_path):
-        if not os.path.isfile(apps_csv_path):
-            print(f"Error: Update: '{apps_csv_path=}' does not exist")
-            return False
-        with open(apps_csv_path,newline="") as csvfile:
-            if csvfile.read() != "":
-                spamreader = csv.reader(csvfile,delimiter=",")
-                for type_, name, path in spamreader:
-                    App(type_, name, path).update(apps_csv_path)
-        gen_text(apps_csv_path)
-
-    @classmethod
-    def delete_all(cls, apps_csv_path):
-        if not os.path.isfile(apps_csv_path):
-            print(f"Error: Delete-All: '{apps_csv_path=}' does not exist")
-            return False
-        with open(apps_csv_path,"w",newline="") as csvfile:
-            spamwriter = csv.writer(csvfile, delimiter=',')
-            spamwriter.writerow([])
-            gen_text(apps_csv_path)
-
-    def update(self,apps_csv_path):
-        if not os.path.isfile(apps_csv_path):
-            print(f"Error: Update: '{apps_csv_path=}' does not exist")
-            return False
-
-        elif self.check():
-            path_from = os.path.join(self.app_path,self.app_name)
-            path_to = os.path.join(os.path.dirname(apps_csv_path),self.app_type,self.app_name)
-            try:
-                os.symlink(path_from, path_to)
-                gen_text(apps_csv_path)
-                print(f"\033[32mLink '{path_to}' created.\033[0m");
-            except FileExistsError:
-                print(f"\033[33mLink '{path_to}' already exists.\033[0m");
 
 
 commands = {"help","register","delete","check","list","update","launch"}
 usage_string: str = f"Usage: $ {argv[0]} (help|register|delete|update|check|list|launch) app-name [app-type]"
 
-parser = ap.ArgumentParser("m-apps",usage=usage_string);
+parser = ap.ArgumentParser("m-apps",usage=usage_string)
 parser.add_argument("-p", "--apps-csv-path", default=None, help="Csv file to execute")
 parser.add_argument("-P", "--path", type=str, nargs=1, default=None, help="If you want to specify a specific directory where it is(default: search in $PATH)")
-parser.add_argument("-w", "--workdir", default=[os.path.join(os.getenv("HOME"),".local","share","apps")], help="The workdir where there are the directories for the types of files, and apps.csv.")
+parser.add_argument("-w", "--workdir", default=[default_path], help="The workdir where there are the directories for the types of files, and apps.csv.")
 parser.add_argument("command", type=str, nargs=1, choices=commands, default=["help"], help="Command to execute")
 parser.add_argument("name", type=str, nargs='*', default=None, help="The name on which you want to execute the command(optional when using list,help)")
 args = parser.parse_args()
@@ -175,12 +78,13 @@ if args.path:
 
 workdir = args.workdir[0]
 apps_csv_path = args.apps_csv_path if args.apps_csv_path else os.path.join(workdir,"apps.csv")
-
+print("csv_path:",apps_csv_path)
 apps = []
 
 try:
-    with open(apps_csv_path,newline="") as csvfile:
-        if csvfile.read() != "":
+
+    if os.stat(apps_csv_path).st_size != 0:
+        with open(apps_csv_path,"r",newline="") as csvfile:
             spamreader = csv.reader(csvfile,delimiter=",")
             for type_, name_, path_ in spamreader:
                 apps.append(App(type_, name_, path_))
@@ -216,13 +120,14 @@ elif name is not None:
         print(f"Registering {name}.")
         registered = False
         if opt_path:
-            if os.path.isfile(opt_path):
+            if os.path.isfile(os.path.join(opt_path,name)):
+                print("trying to register path")
                 App(app_type,name,opt_path).register(apps_csv_path)
             else:
-                print("Invalid path")
+                print(f"Invalid path: {opt_path}")
         else:
             for path in paths_to_check.split(":"):
-                print("Checking path", path);
+                print("Checking path", path)
                 if os.path.isfile(os.path.join(path,name)):
                     App(app_type,name,path).register(apps_csv_path)
                     print("Registration successful")
